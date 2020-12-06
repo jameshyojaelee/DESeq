@@ -1,0 +1,113 @@
+---
+title: "DESeq Analysis"
+author: "James Lee"
+date: "12/5/2020"
+output: html_document
+---
+
+
+```{r}
+library(BiocManager)
+library(DESeq2)
+
+```
+
+
+```{r}
+counts <- read.csv("airway_scaledcounts.csv", stringsAsFactors = FALSE, row.names=1)
+metadata <-  read.csv("airway_metadata.csv", stringsAsFactors = FALSE)
+
+```
+
+```{r}
+head(counts)
+
+```
+
+```{r}
+head(metadata)
+
+```
+
+> Q1. How many genes are in this dataset? 
+
+There are `r nrow(counts)` genes in this dataset.
+
+> Q2. How many ‘control’ cell lines do we have? 
+
+```{r include=FALSE}
+n.control <- sum(metadata$dex == "control")
+```
+
+There are `r n.control` control cell lines in this dataset.
+
+
+### Basic way
+```{r}
+control <- metadata[metadata[,"dex"]=="control",]
+control.counts <- counts[ ,control$id]
+control.mean <- rowSums( control.counts )/4 
+head(control.mean)
+
+```
+
+</br>
+
+### Alternative way using dplyr
+```{r}
+library(dplyr)
+control <- metadata %>% filter(dex=="control")
+control.counts <- counts %>% select(control$id) 
+control.mean <- rowSums(control.counts)/4
+head(control.mean)
+
+```
+</br>
+>Q3. How would you make the above code in either approach more robust?
+
+Change rowSums to rowMeans and get rid of 4
+
+
+
+>Q4. Follow the same procedure for the treated samples (i.e. calculate the mean per gene across drug treated samples and assign to a labeled vector called treated.mean)
+
+```{r}
+treated <- metadata[metadata[,"dex"]=="treated",]
+treated.mean <- rowMeans( counts[ ,treated$id] )
+names(treated.mean) <- counts$ensgene
+meancounts <- data.frame(control.mean, treated.mean)
+
+```
+
+
+>Q5. Create a scatter plot showing the mean of the treated samples against the mean of the control samples. Your plot should look something like the following.
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+
+
+```{r}
+
+```
+

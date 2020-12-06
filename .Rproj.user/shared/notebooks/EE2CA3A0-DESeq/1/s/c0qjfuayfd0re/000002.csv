@@ -1,0 +1,5 @@
+"0","treated <- metadata[metadata[,""dex""]==""treated"",]"
+"0","treated.mean <- rowMeans( counts[ ,treated$id] )"
+"0","names(treated.mean) <- counts$ensgene"
+"0","meancounts <- data.frame(control.mean, treated.mean)"
+"0",""
