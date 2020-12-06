@@ -1,0 +1,7 @@
+"0","x <- as.data.frame(res)"
+"0",""
+"0","EnhancedVolcano(x,"
+"0","    lab = x$symbol,"
+"0","    x = 'log2FoldChange',"
+"0","    y = 'pvalue')"
+"0",""

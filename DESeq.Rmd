@@ -2,7 +2,9 @@
 title: "DESeq Analysis"
 author: "James Lee"
 date: "12/5/2020"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 
@@ -154,18 +156,216 @@ No. Fold changes can be large without being statistically significant and we hav
 ## DESeq2 analysis
 
 ```{r}
+dds <- DESeqDataSetFromMatrix(countData=counts, 
+                              colData=metadata, 
+                              design=~dex)
+dds
 
 ```
 
 ```{r}
+dds <- DESeq(dds)
+```
+
+Get results
+```{r}
+res <- results(dds)
+res
 
 ```
 
 ```{r}
+summary(res)
+```
+
+Customize the p value threshold at 5%
+```{r}
+res05 <- results(dds, alpha=0.05)
+summary(res05)
+
+```
+
+<br>
+<br>
+<br>
+
+##DESeq Annotation
+```{r include=FALSE}
+library("AnnotationDbi")
+library("org.Hs.eg.db")
 
 ```
 
 ```{r}
+columns(org.Hs.eg.db)
+
+```
+```{r}
+res$symbol <- mapIds(org.Hs.eg.db,
+                     keys=row.names(res), # Our genenames
+                     keytype="ENSEMBL",        # The format of our genenames
+                     column="SYMBOL",          # The new format we want to add
+                     multiVals="first")
+head(res)
 
 ```
 
+
+>Q11. Run the mapIds() function two more times to add the Entrez ID and UniProt accession and GENENAME as new columns called res$entrez, res$uniprot and res$genename.
+
+```{r}
+res$entrez <- mapIds(org.Hs.eg.db,
+                     keys=row.names(res), # Our genenames
+                     keytype="ENSEMBL",        # The format of our genenames
+                     column="ENTREZID",          # The new format we want to add
+                     multiVals="first")
+
+res$uniprot <- mapIds(org.Hs.eg.db,
+                     keys=row.names(res), # Our genenames
+                     keytype="ENSEMBL",        # The format of our genenames
+                     column="UNIPROT",          # The new format we want to add
+                     multiVals="first")
+
+res$genename <- mapIds(org.Hs.eg.db,
+                     keys=row.names(res), # Our genenames
+                     keytype="ENSEMBL",        # The format of our genenames
+                     column="GENENAME",          # The new format we want to add
+                     multiVals="first")
+
+head(res)
+```
+
+```{r}
+ord <- order( res$padj )
+#View(res[ord,])
+head(res[ord,])
+```
+
+
+```{r}
+write.csv(res[ord,], "deseq_results.csv")
+
+```
+
+<br>
+<br>
+<br>
+<br>
+
+## Data Visualization
+
+Volcano Plot
+```{r}
+plot( res$log2FoldChange,  -log(res$padj), 
+      xlab="Log2(FoldChange)",
+      ylab="-Log(P-value)")
+
+```
+
+
+
+
+```{r}
+plot( res$log2FoldChange,  -log(res$padj), 
+ ylab="-Log(P-value)", xlab="Log2(FoldChange)")
+
+# Add some cut-off lines
+abline(v=c(-2,2), col="darkgray", lty=2)
+abline(h=-log(0.05), col="darkgray", lty=2)
+
+```
+
+
+</br>
+Let's color the plot
+<br/>
+Red dots show log2FC higher than 2 
+<br/>
+Blue dots show log2FC with statistical significance below 1%
+```{r}
+# Setup our custom point color vector 
+mycols <- rep("gray", nrow(res))
+mycols[ abs(res$log2FoldChange) > 2 ]  <- "red" 
+
+inds <- (res$padj < 0.01) & (abs(res$log2FoldChange) > 2 )
+mycols[ inds ] <- "blue"
+
+# Volcano plot with custom colors 
+plot( res$log2FoldChange,  -log(res$padj), 
+ col=mycols, ylab="-Log(P-value)", xlab="Log2(FoldChange)" )
+
+# Cut-off lines
+abline(v=c(-2,2), col="gray", lty=2)
+abline(h=-log(0.1), col="gray", lty=2)
+
+```
+
+
+```{r include=FALSE}
+library(EnhancedVolcano)
+```
+
+```{r}
+x <- as.data.frame(res)
+
+EnhancedVolcano(x,
+    lab = x$symbol,
+    x = 'log2FoldChange',
+    y = 'pvalue')
+
+```
+
+<br/>
+<br/>
+
+## Pathway Analysis
+
+```{r}
+library(pathview)
+library(gage)
+library(gageData)
+
+data(kegg.sets.hs)
+
+# Examine the first 2 pathways in this kegg set for humans
+head(kegg.sets.hs, 2)
+
+```
+<br/>
+<br/>
+
+```{r}
+foldchanges = res$log2FoldChange
+names(foldchanges) = res$entrez
+head(foldchanges)
+
+```
+
+```{r}
+# Get the results
+keggres = gage(foldchanges, gsets=kegg.sets.hs)
+
+```
+
+```{r}
+attributes(keggres)
+
+```
+
+
+```{r}
+head(keggres$less, 3)
+
+```
+
+```{r}
+pathview(gene.data=foldchanges, pathway.id="hsa05310")
+
+```
+
+
+```{r}
+# A different PDF based output of the same data
+pathview(gene.data=foldchanges, pathway.id="hsa05310", kegg.native=FALSE)
+
+```
