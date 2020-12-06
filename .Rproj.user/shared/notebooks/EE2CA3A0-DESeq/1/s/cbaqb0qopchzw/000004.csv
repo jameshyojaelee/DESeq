@@ -1,0 +1,5 @@
+"0","count_plot_log <- plot(control.mean, treated.mean, log=""xy"","
+"0","                       xlab=""log control counts"","
+"0","                       ylab=""log treated counts"")"
+"2","15032 x values <= 0 omitted from logarithmic plot"
+"2","15281 y values <= 0 omitted from logarithmic plot"

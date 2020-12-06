@@ -6,7 +6,7 @@ output: html_document
 ---
 
 
-```{r}
+```{r include=FALSE}
 library(BiocManager)
 library(DESeq2)
 
@@ -83,31 +83,177 @@ meancounts <- data.frame(control.mean, treated.mean)
 >Q5. Create a scatter plot showing the mean of the treated samples against the mean of the control samples. Your plot should look something like the following.
 
 ```{r}
+count_plot <- plot(control.mean, treated.mean)
+count_plot
+```
 
+>Q6. Try plotting both axes on a log scale. What is the argument to plot() that allows you to do this? 
+
+```{r}
+count_plot_log <- plot(control.mean, treated.mean, log="xy",
+                       xlab="log control counts",
+                       ylab="log treated counts")
+count_plot_log
+```
+
+Calculate log2FC
+```{r}
+meancounts$log2fc <- log2(meancounts[,"treated.mean"]/meancounts[,"control.mean"])
+head(meancounts)
 ```
 
 
 ```{r}
+zero.vals <- which(meancounts[,1:2]==0, arr.ind=TRUE)
 
+to.rm <- unique(zero.vals[,1])
+mycounts <- meancounts[-to.rm,]
+head(mycounts)
+
+```
+
+
+>Q7. What is the purpose of the arr.ind argument in the which() function call above? Why would we then take the first column of the output and need to call the unique() function?
+
+It lets the which() function to return the row and column indices
+<br/>
+<br/>
+<br/>
+
+A common threshold used for calling something differentially expressed is a log2(FoldChange) of greater than 2 or less than -2. Let’s filter the dataset both ways to see how many genes are up or down-regulated.
+```{r}
+up.ind <- mycounts$log2fc > 2
+down.ind <- mycounts$log2fc < (-2)
+
+```
+
+>Q8. Using the up.ind vector above can you determine how many up regulated genes we have at the greater than 2 fc level? 
+
+
+Number of upregulated genes
+```{r}
+sum(up.ind)
+
+```
+>Q9. Using the down.ind vector above can you determine how many down regulated genes we have at the greater than 2 fc level?
+
+Number of downregulated genes
+```{r}
+
+sum(down.ind)
+```
+
+>Q10. Do you trust these results? Why or why not?
+
+No. Fold changes can be large without being statistically significant and we have not done anything to determine the significance. 
+
+<br>
+<br>
+<br>
+
+## DESeq2 analysis
+
+```{r}
+dds <- DESeqDataSetFromMatrix(countData=counts, 
+                              colData=metadata, 
+                              design=~dex)
+dds
+
+```
+
+```{r}
+results(dds)
+
+```
+
+```{r}
+dds <- DESeq(dds)
+```
+
+Get results
+```{r}
+res <- results(dds)
+res
+
+```
+
+```{r}
+summary(res)
+```
+
+Customize the p value threshold at 5%
+```{r}
+res05 <- results(dds, alpha=0.05)
+summary(res05)
+
+```
+
+<br>
+<br>
+<br>
+
+##DESeq Annotation
+```{r include=FALSE}
+library("AnnotationDbi")
+library("org.Hs.eg.db")
+
+```
+
+```{r}
+columns(org.Hs.eg.db)
+
+```
+```{r}
+res$symbol <- mapIds(org.Hs.eg.db,
+                     keys=row.names(res), # Our genenames
+                     keytype="ENSEMBL",        # The format of our genenames
+                     column="SYMBOL",          # The new format we want to add
+                     multiVals="first")
+head(res)
+
+```
+
+
+>Q11. Run the mapIds() function two more times to add the Entrez ID and UniProt accession and GENENAME as new columns called res$entrez, res$uniprot and res$genename.
+
+```{r}
+res$entrez <- mapIds(org.Hs.eg.db,
+                     keys=row.names(res), # Our genenames
+                     keytype="ENSEMBL",        # The format of our genenames
+                     column="ENTREZID",          # The new format we want to add
+                     multiVals="first")
+
+res$uniprot <- mapIds(org.Hs.eg.db,
+                     keys=row.names(res), # Our genenames
+                     keytype="ENSEMBL",        # The format of our genenames
+                     column="UNIPROT",          # The new format we want to add
+                     multiVals="first")
+
+res$genename <- mapIds(org.Hs.eg.db,
+                     keys=row.names(res), # Our genenames
+                     keytype="ENSEMBL",        # The format of our genenames
+                     column="GENENAME",          # The new format we want to add
+                     multiVals="first")
+
+head(res)
+```
+
+```{r}
+ord <- order( res$padj )
+#View(res[ord,])
+head(res[ord,])
 ```
 
 
 ```{r}
+write.csv(res[ord,], "deseq_results.csv")
 
 ```
 
+<br>
+<br>
+<br>
+<br>
 
-```{r}
-
-```
-
-```{r}
-
-```
-
-
-
-```{r}
-
-```
+## Data Visualization
 
